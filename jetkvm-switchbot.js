@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         SwitchBot On/Off Buttons for JetKVM
 // @namespace    http://tampermonkey.net/
-// @version      3.3
-// @description  Adds SwitchBot On/Off buttons to JetKVM after "Virtual Keyboard" with ⏻ and ⏼ icons, robust error checking, and clickable toast notifications that expand to show full message when tapped/clicked.
+// @version      3.5
+// @description  Adds SwitchBot On/Off buttons to JetKVM interface.
 // @author       Robby Cuenot
 // @match        https://yourjetkvm.lan/*
 // @grant        GM_xmlhttpRequest
@@ -264,15 +264,15 @@
   }
 
   // ======================================================
-  // ✅ Inject Buttons After "Virtual Keyboard"
+  // ✅ Inject Buttons After "Wake on LAN" *inside same flex container*
   // ======================================================
 
   function injectButtons() {
     const allButtons = document.querySelectorAll('button');
-    const keyboardButton = Array.from(allButtons).find(btn => btn.textContent.trim() === 'Virtual Keyboard');
+    const wakeButton = Array.from(allButtons).find(btn => btn.textContent.trim() === 'Wake on LAN');
 
-    if (!keyboardButton) {
-      console.log('SwitchBot Injector: Virtual Keyboard button not found yet.');
+    if (!wakeButton) {
+      console.log('SwitchBot Injector: Wake on LAN button not found yet.');
       return;
     }
 
@@ -284,7 +284,7 @@
     const offIcon = '⏼';
 
     const onButton = createButtonFromReference(
-      keyboardButton,
+      wakeButton,
       'switchbot-power-on-button',
       'SwitchBot Power On (1s)',
       onIcon,
@@ -293,7 +293,7 @@
     );
 
     const offButton = createButtonFromReference(
-      keyboardButton,
+      wakeButton,
       'switchbot-power-off-button',
       'SwitchBot Power Off (6s)',
       offIcon,
@@ -301,24 +301,23 @@
       true
     );
 
-    const refWrapper = keyboardButton.parentNode;
-
-    const onWrapper = refWrapper.cloneNode(false);
-    for (const attr of refWrapper.attributes) {
-      onWrapper.setAttribute(attr.name, attr.value);
-    }
+    const onWrapper = document.createElement('div');
+    onWrapper.className = 'relative';
     onWrapper.appendChild(onButton);
 
-    const offWrapper = refWrapper.cloneNode(false);
-    for (const attr of refWrapper.attributes) {
-      offWrapper.setAttribute(attr.name, attr.value);
-    }
+    const offWrapper = document.createElement('div');
+    offWrapper.className = 'relative';
     offWrapper.appendChild(offButton);
 
-    refWrapper.parentNode.insertBefore(onWrapper, refWrapper.nextSibling);
-    refWrapper.parentNode.insertBefore(offWrapper, onWrapper.nextSibling);
-
-    console.log('SwitchBot Injector: Unicode buttons injected after Virtual Keyboard.');
+    // ⭐️ KEY FLEX-FIX: Append inside the *same* flex container for perfect wrapping
+    const buttonContainer = wakeButton.closest('.flex.flex-wrap');
+    if (buttonContainer) {
+      buttonContainer.appendChild(onWrapper);
+      buttonContainer.appendChild(offWrapper);
+      console.log('✅ SwitchBot Injector: Buttons appended inside existing flex container.');
+    } else {
+      console.warn('⚠️ SwitchBot Injector: Flex container not found, skipping injection.');
+    }
   }
 
   // ======================================================
